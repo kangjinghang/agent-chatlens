@@ -1,0 +1,67 @@
+import { useCallback } from 'react'
+import { Upload, FileText } from 'lucide-react'
+
+interface Props {
+  onFile: (file: File) => void
+  loading: boolean
+}
+
+export default function DropZone({ onFile, loading }: Props) {
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      const file = e.dataTransfer.files[0]
+      if (file) onFile(file)
+    },
+    [onFile],
+  )
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+  }, [])
+
+  const handleClick = useCallback(() => {
+    document.getElementById('file-input')?.click()
+  }, [])
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) onFile(file)
+    },
+    [onFile],
+  )
+
+  if (loading) {
+    return (
+      <div className="border-2 border-dashed border-border rounded-xl p-12 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+        <p className="text-muted-foreground">Parsing session...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onClick={handleClick}
+        className="border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-primary transition-colors cursor-pointer"
+      >
+        <input id="file-input" type="file" accept=".jsonl" onChange={handleChange} className="hidden" />
+        <Upload className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+        <h2 className="text-xl font-semibold mb-2">Drop JSONL file here</h2>
+        <p className="text-muted-foreground mb-4">or click to select</p>
+        <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <FileText className="h-4 w-4" /> OpenClaw
+          </span>
+          <span className="flex items-center gap-1">
+            <FileText className="h-4 w-4" /> Claude Code
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
