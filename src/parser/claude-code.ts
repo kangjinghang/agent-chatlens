@@ -58,7 +58,9 @@ function mergeAssistantChunks(entries: RawEntry[]): DisplayMessage | null {
   // Collect all content blocks from all chunks, dedup by type+index
   const seen = new Set<string>()
   const content: ContentBlock[] = []
-  let usage: { input: number; output: number } | undefined
+  let usage: { input: number; output: number; cacheRead?: number; cacheWrite?: number } | undefined
+  let stopReason: string | undefined
+  let model: string | undefined
 
   for (const entry of entries) {
     const m = entry.message as RawMessage
@@ -78,11 +80,17 @@ function mergeAssistantChunks(entries: RawEntry[]): DisplayMessage | null {
       usage = {
         input: m.usage.input_tokens || m.usage.input || 0,
         output: m.usage.output_tokens || m.usage.output || 0,
+        cacheRead: m.usage.cacheRead,
+        cacheWrite: m.usage.cacheWrite,
       }
     }
+
+    // Capture stopReason and model from the last chunk
+    if (m.stopReason) stopReason = m.stopReason
+    if (m.model) model = m.model
   }
 
-  return { id, role: 'assistant', timestamp, content, usage }
+  return { id, role: 'assistant', timestamp, content, usage, stopReason, model }
 }
 
 function parseSingleEntry(entry: RawEntry): DisplayMessage | null {
@@ -170,7 +178,7 @@ function mapBlock(block: any): ContentBlock {
     return { type: 'text', text: String(block.text) }
   }
   if (block.type === 'thinking' && block.thinking != null) {
-    return { type: 'thinking', text: String(block.thinking) }
+    return { type: 'thinking', text: String(block.thinking), signature: block.signature }
   }
   if (block.type === 'tool_use' && block.name) {
     return { type: 'toolUse', id: block.id || '', name: block.name, input: block.input }

@@ -23,8 +23,10 @@ export function parseOpenClawEntries(rawEntries: RawEntry[]): DisplayMessage[] {
     const timestamp = parseTimestamp(entry.timestamp || msg.timestamp)
     const content = parseContentBlocks(msg.content, role, msg)
     const usage = parseUsage(msg.usage)
+    const stopReason = msg.stopReason
+    const model = msg.model
 
-    messages.push({ id, role, timestamp, content, usage })
+    messages.push({ id, role, timestamp, content, usage, stopReason, model })
   }
 
   return messages
@@ -73,7 +75,7 @@ function parseContentBlocks(
       return { type: 'text', text: String(block.text) }
     }
     if (block.type === 'thinking' && block.thinking != null) {
-      return { type: 'thinking', text: String(block.thinking) }
+      return { type: 'thinking', text: String(block.thinking), signature: block.signature }
     }
     if ((block.type === 'toolCall' || block.type === 'tool_use') && block.name) {
       return {
@@ -105,10 +107,12 @@ function extractTextContent(raw: unknown): string {
 
 function parseUsage(
   usage?: RawMessage['usage'],
-): { input: number; output: number } | undefined {
+): { input: number; output: number; cacheRead?: number; cacheWrite?: number } | undefined {
   if (!usage) return undefined
   return {
     input: usage.input_tokens || usage.input || 0,
     output: usage.output_tokens || usage.output || 0,
+    cacheRead: usage.cacheRead,
+    cacheWrite: usage.cacheWrite,
   }
 }

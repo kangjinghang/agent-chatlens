@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Bot, User, Terminal, ChevronDown, ChevronRight } from 'lucide-react'
+import { Bot, User, Terminal, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react'
 import type { DisplayMessage, ContentBlock } from '../parser'
 import ThinkingBlock from './ThinkingBlock'
 import ToolCallBlock from './ToolCallBlock'
@@ -24,7 +24,7 @@ const syntaxTheme = {
     fontSize: '0.875rem',
     fontFamily: '"SF Mono", Monaco, "Cascadia Code", monospace',
   },
-}
+} as Record<string, React.CSSProperties>
 
 interface Props {
   message: DisplayMessage
@@ -48,11 +48,20 @@ export default function MessageItem({ message }: Props) {
       >
         <span className={colorClass}>{icon}</span>
         <div className="flex-1">
-          <span className="font-medium">{label}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{label}</span>
+            {message.model && <span className="text-xs text-muted-foreground font-mono">{message.model}</span>}
+          </div>
           {showMeta && (
             <div className="text-xs text-muted-foreground mt-1 font-mono">{message.id}</div>
           )}
         </div>
+        {message.stopReason && message.stopReason !== 'end_turn' && (
+          <div className="flex items-center gap-1 text-xs text-orange-400">
+            <AlertCircle className="h-3 w-3" />
+            <span>{message.stopReason}</span>
+          </div>
+        )}
         {timestamp && <span className="text-xs text-muted-foreground">{timestamp}</span>}
         {showMeta ? (
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -75,6 +84,12 @@ export default function MessageItem({ message }: Props) {
         {message.usage && (
           <div className="text-xs text-muted-foreground pt-2 border-t border-border">
             Tokens: {message.usage.input} in, {message.usage.output} out
+            {message.usage.cacheRead !== undefined && message.usage.cacheRead > 0 && (
+              <span className="ml-2">Cache: {message.usage.cacheRead} read</span>
+            )}
+            {message.usage.cacheWrite !== undefined && message.usage.cacheWrite > 0 && (
+              <span className="ml-2">Cache: {message.usage.cacheWrite} write</span>
+            )}
           </div>
         )}
       </div>
@@ -91,13 +106,14 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
             remarkPlugins={[remarkGfm]}
             components={{
               code({ className, children, ...props }) {
+                const { ref, ...restProps } = props as { ref?: any; [key: string]: any }
                 const match = /language-(\w+)/.exec(className || '')
                 return match ? (
-                  <SyntaxHighlighter style={syntaxTheme} language={match[1]} PreTag="div" {...props}>
+                  <SyntaxHighlighter style={syntaxTheme as any} language={match[1]} PreTag="div" {...restProps}>
                     {String(children).replace(/\n$/, '')}
                   </SyntaxHighlighter>
                 ) : (
-                  <code className={className} {...props}>
+                  <code className={className} {...restProps}>
                     {children}
                   </code>
                 )
@@ -110,7 +126,7 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
       )
 
     case 'thinking':
-      return <ThinkingBlock text={block.text} />
+      return <ThinkingBlock text={block.text} signature={block.signature} />
 
     case 'toolUse':
       return <ToolCallBlock name={block.name} input={block.input} />

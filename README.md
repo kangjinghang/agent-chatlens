@@ -1,17 +1,32 @@
 # Agent ChatLens
 
-A lightweight, open-source web app for viewing AI agent session files (JSONL format). Supports both **OpenClaw** and **Claude Code** session formats.
+> A powerful, open-source web viewer for AI agent session files — inspect, analyze, and debug your agent conversations with ease.
 
-## Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
+[![React 18](https://img.shields.io/badge/React-18-61DAFB)](https://react.dev/)
 
-- Drag & drop JSONL files for instant viewing
-- Auto-detects OpenClaw and Claude Code formats
-- Markdown rendering with syntax highlighting
-- Collapsible thinking blocks, tool calls, and tool results
-- Dark / light theme toggle
-- Pure frontend — no backend required
+**Agent ChatLens** is a lightweight, pure-frontend web application for viewing and analyzing AI agent session files in JSONL format. It supports both **OpenClaw** and **Claude Code** session formats with intelligent parsing and beautiful rendering.
 
-## Quick Start
+## ✨ Features
+
+### Core Capabilities
+- 📁 **Drag & drop** JSONL files for instant viewing
+- 🔍 **Auto-detects** OpenClaw and Claude Code formats
+- 🎨 **Markdown rendering** with syntax highlighting
+- 🌙 **Dark / light theme** toggle
+- 💻 **Pure frontend** — no backend required
+
+### Advanced Features
+- ⚡ **Virtual scrolling** — Handles large sessions (4000+ messages) without lag
+- 🛠️ **Tool-specific rendering** — Smart display for Bash, Edit, Write, Read, Grep, and more
+- 📊 **Inline diff view** — Visualize code changes in Edit tool calls
+- 🔄 **File reload** — Refresh to see new messages (Chrome/Edge)
+- 📈 **Extended metadata** — View model name, stop reason, cache tokens, and thinking signatures
+- 🔝 **Quick navigation** — Jump to top/bottom buttons
+- 🧪 **Well-tested** — Comprehensive test coverage with Vitest
+
+## 🚀 Quick Start
 
 ```bash
 git clone https://github.com/kangjinghang/agent-chatlens.git
@@ -22,7 +37,11 @@ bun run dev
 
 Then open http://localhost:3000 and drop a `.jsonl` file.
 
-## Supported Formats
+## 📸 Screenshots
+
+Coming soon...
+
+## 📁 Supported Formats
 
 ### OpenClaw Sessions
 
@@ -46,22 +65,38 @@ Files from `~/.claude/projects/*/*.jsonl`
 {"type":"user","uuid":"u2","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"file.txt"}]}}
 ```
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- React 18 + TypeScript
-- Vite
-- Tailwind CSS
-- react-markdown + remark-gfm
-- react-syntax-highlighter
-- lucide-react
+- **React 18** + TypeScript
+- **Vite** for fast builds
+- **Tailwind CSS** for styling
+- **@tanstack/react-virtual** for virtual scrolling
+- **react-markdown** + **remark-gfm** for Markdown
+- **react-syntax-highlighter** for code highlighting
+- **lucide-react** for icons
 
-## Build
+## 📦 Build
 
 ```bash
 bun run build
 bun run preview
 ```
 
-## License
+## 🧪 Testing
 
-MIT
+```bash
+bun test          # Run tests once
+bun run test:watch  # Watch mode
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+MIT © [kangjinghang](https://github.com/kangjinghang)
+
+## 🔗 Keywords
+
+AI agent, session viewer, JSONL viewer, OpenClaw, Claude Code, agent debugging, conversation analysis, tool call visualization, virtual scrolling, React, TypeScript

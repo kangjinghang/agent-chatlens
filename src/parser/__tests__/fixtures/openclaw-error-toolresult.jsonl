@@ -1,0 +1,3 @@
+{"type":"message","id":"m1","timestamp":"2026-01-15T10:00:01.000Z","message":{"role":"assistant","content":[{"type":"toolCall","id":"tc1","name":"Bash","arguments":{"command":"rm -rf /"}}],"usage":{"input_tokens":10,"output_tokens":5}}}
+{"type":"message","id":"m2","timestamp":"2026-01-15T10:00:02.000Z","message":{"role":"toolResult","content":[{"type":"text","text":"Permission denied"}],"toolCallId":"tc1","toolName":"Bash","isError":true}}
+{"type":"message","id":"m3","timestamp":"2026-01-15T10:00:03.000Z","message":{"role":"assistant","content":[{"type":"text","text":"The command failed with a permission error."}],"usage":{"input_tokens":15,"output_tokens":10}}}

@@ -1,0 +1,4 @@
+not valid json
+{"type":"message","id":"m1","timestamp":"2026-01-15T10:00:01.000Z","message":{"role":"user","content":[{"type":"text","text":"valid entry"}]}}
+also not valid
+{"type":"message","id":"m2","timestamp":"2026-01-15T10:00:02.000Z","message":{"role":"assistant","content":[{"type":"text","text":"response"}]}}

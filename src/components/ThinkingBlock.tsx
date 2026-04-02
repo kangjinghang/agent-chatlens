@@ -3,9 +3,10 @@ import { ChevronDown, ChevronRight, Brain } from 'lucide-react'
 
 interface Props {
   text: string
+  signature?: string
 }
 
-export default function ThinkingBlock({ text }: Props) {
+export default function ThinkingBlock({ text, signature }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -28,6 +29,11 @@ export default function ThinkingBlock({ text }: Props) {
           <div className="text-sm text-muted-foreground whitespace-pre-wrap font-mono bg-background rounded p-3 max-h-96 overflow-y-auto">
             {text}
           </div>
+          {signature && (
+            <div className="mt-2 text-xs text-muted-foreground font-mono">
+              Signature: <span className="text-xs font-mono text-muted-foreground">{signature}</span>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,8 +1,8 @@
 import { useCallback } from 'react'
-import { Upload, FileText } from 'lucide-react'
+import { Upload, FileText, FolderOpen } from 'lucide-react'
 
 interface Props {
-  onFile: (file: File) => void
+  onFile: (file: File, handle?: FileSystemFileHandle) => void
   loading: boolean
 }
 
@@ -31,6 +31,32 @@ export default function DropZone({ onFile, loading }: Props) {
     },
     [onFile],
   )
+
+  const handleFilePicker = useCallback(async () => {
+    if (!('showOpenFilePicker' in window)) {
+      // Fallback to regular file input
+      document.getElementById('file-input')?.click()
+      return
+    }
+
+    try {
+      const [handle] = await (window as any).showOpenFilePicker({
+        types: [
+          {
+            description: 'JSONL Files',
+            accept: { 'application/jsonl': ['.jsonl'] },
+          },
+        ],
+      })
+      const file = await handle.getFile()
+      onFile(file, handle)
+    } catch (err) {
+      // User cancelled or error occurred
+      if ((err as Error).name !== 'AbortError') {
+        console.error('File picker error:', err)
+      }
+    }
+  }, [onFile])
 
   if (loading) {
     return (
@@ -62,6 +88,15 @@ export default function DropZone({ onFile, loading }: Props) {
           </span>
         </div>
       </div>
+
+      {/* File picker button for reload support */}
+      <button
+        onClick={handleFilePicker}
+        className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors font-medium"
+      >
+        <FolderOpen className="h-5 w-5" />
+        Choose File (supports reload)
+      </button>
     </div>
   )
 }
