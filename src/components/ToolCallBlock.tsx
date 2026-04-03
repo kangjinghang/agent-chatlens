@@ -3,6 +3,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { ChevronDown, ChevronRight, Terminal, FileEdit, FileText, FolderSearch, Search } from 'lucide-react'
 import DiffView from './DiffView'
+import { useToolCollapse } from './TurnView'
 
 interface Props {
   name: string
@@ -46,7 +47,9 @@ export default function ToolCallBlock({ name, input }: Props) {
 // --- Tool-specific components ---
 
 function BashCall({ command, description }: { command: string; description: string }) {
+  const { collapsed } = useToolCollapse()
   const [open, setOpen] = useState(false)
+  const isOpen = !collapsed && open
 
   return (
     <div className="border border-border rounded-lg bg-muted/30 overflow-hidden">

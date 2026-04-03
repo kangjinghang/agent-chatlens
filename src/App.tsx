@@ -45,7 +45,7 @@ export default function App() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-semibold">Agent ChatLens</h1>
@@ -55,7 +55,7 @@ export default function App() {
       </header>
 
       {/* Main */}
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <main className="mx-auto px-6 py-8">
         {session ? (
           <div className="space-y-4">
             {/* Info bar */}

@@ -1,19 +1,28 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { AlertCircle, ArrowUp, ArrowDown } from 'lucide-react'
+import { AlertCircle, ArrowUp, ArrowDown, Layers, BarChart3 } from 'lucide-react'
 import type { ParsedSession } from '../parser'
 import { groupIntoTurns } from '../parser'
-import TurnView from './TurnView'
+import TurnView, { ToolCollapseProvider, useToolCollapse } from './TurnView'
 
 interface Props {
   session: ParsedSession
 }
 
 export default function SessionList({ session }: Props) {
+  return (
+    <ToolCollapseProvider>
+      <SessionListInner session={session} />
+    </ToolCollapseProvider>
+  )
+}
+
+function SessionListInner({ session }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [showScrollButtons, setShowScrollButtons] = useState(false)
   const [isAtTop, setIsAtTop] = useState(true)
   const [isAtBottom, setIsAtBottom] = useState(true)
+  const { collapsed, toggle } = useToolCollapse()
 
   const turns = useMemo(() => groupIntoTurns(session.messages), [session.messages])
 
@@ -63,6 +72,18 @@ export default function SessionList({ session }: Props) {
     }
   }, [])
 
+  // Compute stats
+  const stats = useMemo(() => {
+    const toolCalls = session.messages.filter(m => m.role === 'assistant')
+      .flatMap(m => m.content.filter(b => b.type === 'toolUse')).length
+    const totalInput = session.messages.reduce((sum, m) => sum + (m.usage?.input ?? 0), 0)
+    const totalOutput = session.messages.reduce((sum, m) => sum + (m.usage?.output ?? 0), 0)
+    const firstTs = session.messages.find(m => m.timestamp)?.timestamp
+    const lastTs = [...session.messages].reverse().find(m => m.timestamp)?.timestamp
+    const duration = firstTs && lastTs ? lastTs - firstTs : null
+    return { toolCalls, totalInput, totalOutput, duration }
+  }, [session.messages])
+
   if (session.messages.length === 0) {
     return (
       <div className="text-center py-12">
@@ -74,10 +95,42 @@ export default function SessionList({ session }: Props) {
 
   return (
     <div className="relative">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center gap-3">
+          {/* Stats pills */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <BarChart3 className="h-3.5 w-3.5" />
+            <span>{turns.length} turns</span>
+            <span>·</span>
+            <span>{stats.toolCalls} tool calls</span>
+            <span>·</span>
+            <span>{formatTokens(stats.totalInput + stats.totalOutput)} tokens</span>
+            {stats.duration !== null && (
+              <>
+                <span>·</span>
+                <span>{formatDuration(stats.duration)}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Collapse toggle */}
+        <button
+          onClick={toggle}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg hover:bg-muted border border-border transition-colors"
+          title={collapsed ? 'Expand all tool calls' : 'Collapse all tool calls'}
+        >
+          <Layers className="h-3.5 w-3.5" />
+          {collapsed ? 'Expand Tools' : 'Collapse Tools'}
+        </button>
+      </div>
+
+      {/* Messages */}
       <div
         ref={scrollRef}
         className="overflow-y-auto"
-        style={{ maxHeight: 'calc(100vh - 200px)' }}
+        style={{ maxHeight: 'calc(100vh - 240px)' }}
       >
         <div
           style={{
@@ -134,4 +187,20 @@ export default function SessionList({ session }: Props) {
       )}
     </div>
   )
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K'
+  return String(n)
+}
+
+function formatDuration(ms: number): string {
+  const s = Math.floor(ms / 1000)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  const rem = s % 60
+  if (m < 60) return `${m}m ${rem}s`
+  const h = Math.floor(m / 60)
+  return `${h}h ${m % 60}m`
 }

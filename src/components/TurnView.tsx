@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, createContext, useContext } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Bot, User, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react'
+import { Bot, User, AlertCircle, Copy, Check } from 'lucide-react'
 import type { Turn, ContentBlock, DisplayMessage } from '../parser'
 import ThinkingBlock from './ThinkingBlock'
 import ToolCallBlock from './ToolCallBlock'
@@ -26,18 +26,37 @@ const syntaxTheme = {
   },
 } as Record<string, React.CSSProperties>
 
+// --- Collapse All Context ---
+const ToolCollapseContext = createContext<{
+  collapsed: boolean
+  toggle: () => void
+}>({ collapsed: false, toggle: () => {} })
+
+export function useToolCollapse() {
+  return useContext(ToolCollapseContext)
+}
+
+export function ToolCollapseProvider({ children }: { children: React.ReactNode }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const toggle = () => setCollapsed(prev => !prev)
+  return (
+    <ToolCollapseContext.Provider value={{ collapsed, toggle }}>
+      {children}
+    </ToolCollapseContext.Provider>
+  )
+}
+
+// --- TurnView ---
 export default function TurnView({ turn }: { turn: Turn }) {
   return (
     <div className="space-y-3">
-      {/* User message — right aligned */}
       {turn.user && <UserBubble message={turn.user} />}
-
-      {/* Assistant steps — left aligned */}
       {turn.steps.length > 0 && <AssistantBubble steps={turn.steps} />}
     </div>
   )
 }
 
+// --- User Bubble ---
 function UserBubble({ message }: { message: DisplayMessage }) {
   const text = message.content
     .filter(b => b.type === 'text')
@@ -48,7 +67,7 @@ function UserBubble({ message }: { message: DisplayMessage }) {
 
   return (
     <div className="flex justify-end">
-      <div className="max-w-[80%] bg-primary/10 border border-primary/20 rounded-2xl rounded-br-sm px-4 py-3">
+      <div className="max-w-[65%] bg-primary/10 border border-primary/20 rounded-2xl rounded-br-sm px-5 py-3">
         <div className="flex items-center gap-2 mb-1">
           <User className="h-4 w-4 text-blue-400" />
           <span className="text-xs font-medium text-blue-400">User</span>
@@ -66,18 +85,18 @@ function UserBubble({ message }: { message: DisplayMessage }) {
   )
 }
 
+// --- Assistant Bubble ---
 function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
-  // Collect info from all steps
   const firstStep = steps[0]
   const model = steps.find(s => s.model)?.model
   const stopReason = steps.find(s => s.stopReason)?.stopReason
   const lastUsage = [...steps].reverse().find(s => s.usage)?.usage
 
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[85%] bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-3 w-full">
+    <div className="w-full">
+      <div className="border border-border rounded-2xl rounded-bl-sm overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-muted/50 border-b border-border">
           <Bot className="h-4 w-4 text-green-400" />
           <span className="text-xs font-medium text-green-400">Assistant</span>
           {model && <span className="text-xs text-muted-foreground font-mono">{model}</span>}
@@ -95,7 +114,7 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
         </div>
 
         {/* Steps */}
-        <div className="space-y-2">
+        <div className="px-5 py-4 space-y-3">
           {steps.map((step, i) => (
             <StepView key={step.id + i} step={step} />
           ))}
@@ -103,7 +122,7 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
 
         {/* Usage */}
         {lastUsage && (
-          <div className="text-xs text-muted-foreground pt-2 mt-2 border-t border-border">
+          <div className="px-5 py-2.5 text-xs text-muted-foreground border-t border-border bg-muted/30">
             Tokens: {lastUsage.input} in, {lastUsage.output} out
             {lastUsage.cacheRead !== undefined && lastUsage.cacheRead > 0 && (
               <span className="ml-2">Cache: {lastUsage.cacheRead} read</span>
@@ -118,6 +137,7 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
   )
 }
 
+// --- Step View ---
 function StepView({ step }: { step: DisplayMessage }) {
   if (step.role === 'toolResult') {
     return (
@@ -129,7 +149,6 @@ function StepView({ step }: { step: DisplayMessage }) {
     )
   }
 
-  // Assistant step — separate thinking/tool-use from text
   const thinkingBlocks = step.content.filter(b => b.type === 'thinking')
   const toolBlocks = step.content.filter(b => b.type === 'toolUse')
   const textBlocks = step.content.filter(b => b.type === 'text')
@@ -149,6 +168,7 @@ function StepView({ step }: { step: DisplayMessage }) {
   )
 }
 
+// --- Content Block Renderer ---
 function ContentBlockRenderer({ block }: { block: ContentBlock }) {
   switch (block.type) {
     case 'text':
@@ -160,14 +180,21 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
               code({ className, children, ...props }) {
                 const { ref, ...restProps } = props as { ref?: any; [key: string]: any }
                 const match = /language-(\w+)/.exec(className || '')
-                return match ? (
-                  <SyntaxHighlighter style={syntaxTheme as any} language={match[1]} PreTag="div" {...restProps}>
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                ) : (
-                  <code className={className} {...restProps}>
-                    {children}
-                  </code>
+                const codeStr = String(children).replace(/\n$/, '')
+
+                // Inline code
+                if (!match) {
+                  return <code className={className} {...restProps}>{children}</code>
+                }
+
+                // Block code — add copy button
+                return (
+                  <div className="relative group">
+                    <CopyButton text={codeStr} />
+                    <SyntaxHighlighter style={syntaxTheme as any} language={match[1]} PreTag="div" {...restProps}>
+                      {codeStr}
+                    </SyntaxHighlighter>
+                  </div>
                 )
               },
             }}
@@ -186,4 +213,29 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
     case 'toolResult':
       return <ToolResultBlock content={block.content} isError={block.isError} toolName={block.toolName} />
   }
+}
+
+// --- Copy Button ---
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute top-2 right-2 p-1.5 rounded-md bg-muted/80 hover:bg-muted border border-border opacity-0 group-hover:opacity-100 transition-opacity z-10"
+      title="Copy code"
+    >
+      {copied ? (
+        <Check className="h-3.5 w-3.5 text-green-400" />
+      ) : (
+        <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+      )}
+    </button>
+  )
 }
