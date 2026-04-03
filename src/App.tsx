@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react'
-import { FileText, X, RefreshCw } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { FileText, X } from 'lucide-react'
 import { parseSession } from './parser'
 import type { ParsedSession } from './parser'
 import DropZone from './components/DropZone'
@@ -11,8 +11,6 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
-  const [fileName, setFileName] = useState('')
-  const fileHandleRef = useRef<FileSystemFileHandle | null>(null)
 
   const toggleTheme = useCallback(() => {
     setDark(prev => {
@@ -21,7 +19,7 @@ export default function App() {
     })
   }, [])
 
-  const handleFile = useCallback(async (file: File, handle?: FileSystemFileHandle) => {
+  const handleFile = useCallback(async (file: File) => {
     setLoading(true)
     setError('')
     try {
@@ -31,10 +29,6 @@ export default function App() {
         setError('No displayable messages found in this file.')
       }
       setSession(result)
-      setFileName(file.name)
-      if (handle) {
-        fileHandleRef.current = handle
-      }
     } catch (err) {
       setError('Failed to parse file: ' + (err as Error).message)
     } finally {
@@ -45,80 +39,7 @@ export default function App() {
   const handleReset = useCallback(() => {
     setSession(null)
     setError('')
-    setFileName('')
-    fileHandleRef.current = null
   }, [])
-
-  const handleReload = useCallback(async () => {
-    const handle = fileHandleRef.current
-
-    // If we have a file handle, re-read directly
-    if (handle) {
-      setLoading(true)
-      setError('')
-      try {
-        const file = await handle.getFile()
-        const text = await file.text()
-        const result = parseSession(text, file.name)
-        if (result.messages.length === 0) {
-          setError('No displayable messages found in this file.')
-        }
-        setSession(result)
-        setFileName(file.name)
-      } catch (err) {
-        setError('Failed to reload file: ' + (err as Error).message)
-      } finally {
-        setLoading(false)
-      }
-      return
-    }
-
-    // No file handle (drag-dropped file) — ask user to re-select
-    if (!('showOpenFilePicker' in window)) {
-      // Fallback: trigger hidden file input
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = '.jsonl'
-      input.onchange = async () => {
-        const file = input.files?.[0]
-        if (file) await handleFile(file)
-      }
-      input.click()
-      return
-    }
-
-    try {
-      const [newHandle] = await (window as any).showOpenFilePicker({
-        types: [
-          {
-            description: 'JSONL Files',
-            accept: { 'application/jsonl': ['.jsonl'] },
-          },
-        ],
-      })
-      const file = await newHandle.getFile()
-      fileHandleRef.current = newHandle
-      setLoading(true)
-      setError('')
-      try {
-        const text = await file.text()
-        const result = parseSession(text, file.name)
-        if (result.messages.length === 0) {
-          setError('No displayable messages found in this file.')
-        }
-        setSession(result)
-        setFileName(file.name)
-      } catch (err) {
-        setError('Failed to parse file: ' + (err as Error).message)
-      } finally {
-        setLoading(false)
-      }
-    } catch (err) {
-      if ((err as Error).name !== 'AbortError') {
-        console.error('File picker error:', err)
-      }
-    }
-  }, [handleFile])
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,15 +71,6 @@ export default function App() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleReload}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
-                  title={fileHandleRef.current ? 'Reload file' : 'Re-select file to reload'}
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  Reload
-                </button>
                 <button
                   onClick={handleReset}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition-colors"
