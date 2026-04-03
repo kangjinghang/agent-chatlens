@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { ChevronDown, ChevronRight, CheckCircle2, XCircle } from 'lucide-react'
@@ -41,7 +41,21 @@ export default function ToolResultBlock({ content, isError, toolName }: Props) {
   const defaultOpen = isError || (!isLong && lineCount <= 20)
 
   const [localOpen, setLocalOpen] = useState(defaultOpen)
-  const isOpen = !collapsed && localOpen
+  const [override, setOverride] = useState(false)
+
+  // Reset override when global collapse is turned off
+  useEffect(() => {
+    if (!collapsed) setOverride(false)
+  }, [collapsed])
+
+  const isOpen = override || (!collapsed && localOpen)
+  const toggle = () => {
+    if (collapsed) {
+      setOverride(!override)
+    } else {
+      setLocalOpen(!localOpen)
+    }
+  }
 
   return (
     <div
@@ -50,7 +64,7 @@ export default function ToolResultBlock({ content, isError, toolName }: Props) {
       }`}
     >
       <button
-        onClick={() => setLocalOpen(!localOpen)}
+        onClick={toggle}
         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/50 transition-colors text-left"
       >
         {isOpen ? (

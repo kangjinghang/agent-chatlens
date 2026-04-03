@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { ChevronDown, ChevronRight, Terminal, FileEdit, FileText, FolderSearch, Search } from 'lucide-react'
@@ -48,8 +48,22 @@ export default function ToolCallBlock({ name, input }: Props) {
 function useCollapsibleOpen() {
   const { collapsed } = useToolCollapse()
   const [open, setOpen] = useState(false)
-  const isOpen = !collapsed && open
-  return { isOpen, toggle: () => setOpen(!open) }
+  const [override, setOverride] = useState(false)
+
+  // Reset override when global collapse is turned off
+  useEffect(() => {
+    if (!collapsed) setOverride(false)
+  }, [collapsed])
+
+  const isOpen = override || (!collapsed && open)
+  const toggle = () => {
+    if (collapsed) {
+      setOverride(!override)
+    } else {
+      setOpen(!open)
+    }
+  }
+  return { isOpen, toggle }
 }
 
 // --- Tool-specific components ---

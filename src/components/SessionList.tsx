@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { AlertCircle, ArrowUp, ArrowDown, Layers, BarChart3 } from 'lucide-react'
+import { AlertCircle, ArrowUp, ArrowDown, Layers, BarChart3, List, GanttChart } from 'lucide-react'
 import type { ParsedSession } from '../parser'
 import { groupIntoTurns } from '../parser'
 import TurnView, { ToolCollapseProvider, useToolCollapse } from './TurnView'
+import TimelineView from './TimelineView'
 
 interface Props {
   session: ParsedSession
@@ -22,6 +23,7 @@ function SessionListInner({ session }: Props) {
   const [showScrollButtons, setShowScrollButtons] = useState(false)
   const [isAtTop, setIsAtTop] = useState(true)
   const [isAtBottom, setIsAtBottom] = useState(true)
+  const [view, setView] = useState<'list' | 'timeline'>('list')
   const { collapsed, toggle } = useToolCollapse()
 
   const turns = useMemo(() => groupIntoTurns(session.messages), [session.messages])
@@ -58,7 +60,7 @@ function SessionListInner({ session }: Props) {
     updateScrollState()
     el.addEventListener('scroll', updateScrollState)
     return () => el.removeEventListener('scroll', updateScrollState)
-  }, [turns.length])
+  }, [turns.length, view])
 
   const scrollToTop = useCallback(() => {
     if (scrollRef.current) {
@@ -116,14 +118,42 @@ function SessionListInner({ session }: Props) {
         </div>
 
         {/* Collapse toggle */}
-        <button
-          onClick={toggle}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg hover:bg-muted border border-border transition-colors"
-          title={collapsed ? 'Expand all tool calls' : 'Collapse all tool calls'}
-        >
-          <Layers className="h-3.5 w-3.5" />
-          {collapsed ? 'Expand Tools' : 'Collapse Tools'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center border border-border rounded-lg overflow-hidden">
+            <button
+              onClick={() => setView('list')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${
+                view === 'list' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'
+              }`}
+              title="List view"
+            >
+              <List className="h-3.5 w-3.5" />
+              List
+            </button>
+            <button
+              onClick={() => setView('timeline')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${
+                view === 'timeline' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'
+              }`}
+              title="Timeline view"
+            >
+              <GanttChart className="h-3.5 w-3.5" />
+              Timeline
+            </button>
+          </div>
+
+          {view === 'list' && (
+            <button
+              onClick={toggle}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg hover:bg-muted border border-border transition-colors"
+              title={collapsed ? 'Expand all tool calls' : 'Collapse all tool calls'}
+            >
+              <Layers className="h-3.5 w-3.5" />
+              {collapsed ? 'Expand Tools' : 'Collapse Tools'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -132,34 +162,38 @@ function SessionListInner({ session }: Props) {
         className="overflow-y-auto"
         style={{ maxHeight: 'calc(100vh - 240px)' }}
       >
-        <div
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {virtualizer.getVirtualItems().map((virtualItem) => {
-            const turn = turns[virtualItem.index]
-            return (
-              <div
-                key={turn.id}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualItem.start}px)`,
-                  paddingBottom: '1rem',
-                }}
-                data-index={virtualItem.index}
-                ref={virtualizer.measureElement}
-              >
-                <TurnView turn={turn} />
-              </div>
-            )
-          })}
-        </div>
+        {view === 'timeline' ? (
+          <TimelineView turns={turns} />
+        ) : (
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const turn = turns[virtualItem.index]
+              return (
+                <div
+                  key={turn.id}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualItem.start}px)`,
+                    paddingBottom: '1rem',
+                  }}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                >
+                  <TurnView turn={turn} />
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Scroll buttons */}

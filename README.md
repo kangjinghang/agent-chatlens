@@ -17,14 +17,21 @@
 - 🌙 **Dark / light theme** toggle
 - 💻 **Pure frontend** — no backend required
 
-### Advanced Features
+### Chat-Style Interface
+- 💬 **Turn-based layout** — Messages grouped into user/assistant turns like a chat app
+- 🧠 **Thinking blocks** — Collapsible reasoning/thinking display with signature info
+- 📋 **Code copy** — One-click copy buttons on code blocks
+- ⏱️ **Timestamps & durations** — Tool execution time badges, total turn duration
+
+### Tool Visualization
+- 🛠️ **Tool-specific rendering** — Smart display for Bash, Edit, Write, Read, Grep, Glob, and more
+- 📊 **Inline diff view** — Visualize code changes in Edit tool calls (red/gold deletion, green addition)
+- 📈 **Timeline view** — Gantt chart showing tool call execution timeline with duration bars
+- 🔽 **Collapse/expand tools** — Toggle all tool calls collapsed, with per-item override
+
+### Performance
 - ⚡ **Virtual scrolling** — Handles large sessions (4000+ messages) without lag
-- 🛠️ **Tool-specific rendering** — Smart display for Bash, Edit, Write, Read, Grep, and more
-- 📊 **Inline diff view** — Visualize code changes in Edit tool calls
-- 🔄 **File reload** — Refresh to see new messages (Chrome/Edge)
-- 📈 **Extended metadata** — View model name, stop reason, cache tokens, and thinking signatures
-- 🔝 **Quick navigation** — Jump to top/bottom buttons
-- 🧪 **Well-tested** — Comprehensive test coverage with Vitest
+- 📊 **Session statistics** — Turns, tool calls, total tokens, session duration at a glance
 
 ## 🚀 Quick Start
 
@@ -36,10 +43,6 @@ bun run dev
 ```
 
 Then open http://localhost:3000 and drop a `.jsonl` file.
-
-## 📸 Screenshots
-
-Coming soon...
 
 ## 📁 Supported Formats
 
@@ -85,7 +88,7 @@ bun run preview
 ## 🧪 Testing
 
 ```bash
-bun test          # Run tests once
+bun test            # Run tests once
 bun run test:watch  # Watch mode
 ```
 
