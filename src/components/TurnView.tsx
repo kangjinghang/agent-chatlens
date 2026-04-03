@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Bot, User, AlertCircle, Copy, Check } from 'lucide-react'
+import { Bot, User, AlertCircle, Copy, Check, Clock } from 'lucide-react'
 import type { Turn, ContentBlock, DisplayMessage } from '../parser'
 import ThinkingBlock from './ThinkingBlock'
 import ToolCallBlock from './ToolCallBlock'
@@ -46,6 +46,19 @@ export function ToolCollapseProvider({ children }: { children: React.ReactNode }
   )
 }
 
+// --- Time helpers ---
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
+  const m = Math.floor(ms / 60_000)
+  const s = Math.round((ms % 60_000) / 1000)
+  return `${m}m${s}s`
+}
+
 // --- TurnView ---
 export default function TurnView({ turn }: { turn: Turn }) {
   return (
@@ -73,7 +86,7 @@ function UserBubble({ message }: { message: DisplayMessage }) {
           <span className="text-xs font-medium text-blue-400">User</span>
           {message.timestamp && (
             <span className="text-xs text-muted-foreground">
-              {new Date(message.timestamp).toLocaleTimeString('zh-CN')}
+              {formatTime(message.timestamp)}
             </span>
           )}
         </div>
@@ -92,6 +105,10 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
   const stopReason = steps.find(s => s.stopReason)?.stopReason
   const lastUsage = [...steps].reverse().find(s => s.usage)?.usage
 
+  // Calculate total assistant time
+  const lastStepTs = [...steps].reverse().find(s => s.timestamp)?.timestamp
+  const totalDuration = firstStep?.timestamp && lastStepTs ? lastStepTs - firstStep.timestamp : null
+
   return (
     <div className="w-full">
       <div className="border border-border rounded-2xl rounded-bl-sm overflow-hidden">
@@ -102,7 +119,13 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
           {model && <span className="text-xs text-muted-foreground font-mono">{model}</span>}
           {firstStep?.timestamp && (
             <span className="text-xs text-muted-foreground">
-              {new Date(firstStep.timestamp).toLocaleTimeString('zh-CN')}
+              {formatTime(firstStep.timestamp)}
+            </span>
+          )}
+          {totalDuration !== null && totalDuration > 0 && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              {formatDuration(totalDuration)}
             </span>
           )}
           {stopReason && stopReason !== 'end_turn' && (
@@ -115,9 +138,10 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
 
         {/* Steps */}
         <div className="px-5 py-4 space-y-3">
-          {steps.map((step, i) => (
-            <StepView key={step.id + i} step={step} />
-          ))}
+          {steps.map((step, i) => {
+            const prevTs = i > 0 ? steps[i - 1].timestamp : null
+            return <StepView key={step.id + i} step={step} prevTimestamp={prevTs} />
+          })}
         </div>
 
         {/* Usage */}
@@ -138,32 +162,50 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
 }
 
 // --- Step View ---
-function StepView({ step }: { step: DisplayMessage }) {
-  if (step.role === 'toolResult') {
-    return (
-      <div>
-        {step.content.map((block, i) => (
-          <ContentBlockRenderer key={i} block={block} />
-        ))}
-      </div>
-    )
-  }
+function StepView({ step, prevTimestamp }: { step: DisplayMessage; prevTimestamp: number | null }) {
+  const hasToolUse = step.content.some(b => b.type === 'toolUse')
+  const isToolResult = step.role === 'toolResult'
 
-  const thinkingBlocks = step.content.filter(b => b.type === 'thinking')
-  const toolBlocks = step.content.filter(b => b.type === 'toolUse')
-  const textBlocks = step.content.filter(b => b.type === 'text')
+  // Calculate duration: time between this step and the previous step
+  const elapsed = prevTimestamp && step.timestamp ? step.timestamp - prevTimestamp : null
+  const showDuration = isToolResult && elapsed !== null && elapsed > 0
 
   return (
     <div>
-      {thinkingBlocks.map((block, i) => (
-        <ContentBlockRenderer key={`think-${i}`} block={block} />
-      ))}
-      {toolBlocks.map((block, i) => (
-        <ContentBlockRenderer key={`tool-${i}`} block={block} />
-      ))}
-      {textBlocks.map((block, i) => (
-        <ContentBlockRenderer key={`text-${i}`} block={block} />
-      ))}
+      {/* Timestamp badge for tool-related steps */}
+      {(hasToolUse || isToolResult) && step.timestamp && (
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-[10px] text-muted-foreground font-mono">
+            {formatTime(step.timestamp)}
+          </span>
+          {showDuration && (
+            <span className="flex items-center gap-1 text-[10px] text-amber-400 font-mono bg-amber-400/10 px-1.5 py-0.5 rounded">
+              <Clock className="h-2.5 w-2.5" />
+              {formatDuration(elapsed!)}
+            </span>
+          )}
+        </div>
+      )}
+
+      {isToolResult ? (
+        <div>
+          {step.content.map((block, i) => (
+            <ContentBlockRenderer key={i} block={block} />
+          ))}
+        </div>
+      ) : (
+        <>
+          {step.content.filter(b => b.type === 'thinking').map((block, i) => (
+            <ContentBlockRenderer key={`think-${i}`} block={block} />
+          ))}
+          {step.content.filter(b => b.type === 'toolUse').map((block, i) => (
+            <ContentBlockRenderer key={`tool-${i}`} block={block} />
+          ))}
+          {step.content.filter(b => b.type === 'text').map((block, i) => (
+            <ContentBlockRenderer key={`text-${i}`} block={block} />
+          ))}
+        </>
+      )}
     </div>
   )
 }
@@ -182,12 +224,10 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
                 const match = /language-(\w+)/.exec(className || '')
                 const codeStr = String(children).replace(/\n$/, '')
 
-                // Inline code
                 if (!match) {
                   return <code className={className} {...restProps}>{children}</code>
                 }
 
-                // Block code — add copy button
                 return (
                   <div className="relative group">
                     <CopyButton text={codeStr} />
