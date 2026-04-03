@@ -2,7 +2,8 @@
 
 <p align="center">
   <strong>A beautiful web viewer for AI agent session files</strong><br>
-  Inspect, analyze, and debug your Claude Code / OpenClaw conversations with ease.
+  Inspect, analyze, and debug your Claude Code &amp; OpenClaw conversation sessions with ease.<br>
+  Drop a <code>.jsonl</code> session file and explore — zero setup required.
 </p>
 
 <p align="center">
