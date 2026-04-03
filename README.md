@@ -10,6 +10,8 @@
   <a href="https://kangjinghang.github.io/agent-chatlens/"><strong>Try it live — no install needed</strong></a>
   ·
   <a href="#-quick-start">Run locally</a>
+  ·
+  <a href="README_zh-CN.md">中文</a>
 </p>
 
 <p align="center">
