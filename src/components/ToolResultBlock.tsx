@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { ChevronDown, ChevronRight, CheckCircle2, XCircle } from 'lucide-react'
+import { useToolCollapse } from './TurnView'
 
 interface Props {
   content: string
@@ -28,7 +29,7 @@ const syntaxTheme = {
 }
 
 export default function ToolResultBlock({ content, isError, toolName }: Props) {
-  const [open, setOpen] = useState(!isError)
+  const { collapsed } = useToolCollapse()
 
   // Detect content type for better rendering
   const isCode = looksLikeCode(content)
@@ -39,7 +40,8 @@ export default function ToolResultBlock({ content, isError, toolName }: Props) {
   const isLong = lineCount > 50
   const defaultOpen = isError || (!isLong && lineCount <= 20)
 
-  const [isOpen, setIsOpen] = useState(open === undefined ? defaultOpen : open)
+  const [localOpen, setLocalOpen] = useState(defaultOpen)
+  const isOpen = !collapsed && localOpen
 
   return (
     <div
@@ -48,7 +50,7 @@ export default function ToolResultBlock({ content, isError, toolName }: Props) {
       }`}
     >
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setLocalOpen(!localOpen)}
         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/50 transition-colors text-left"
       >
         {isOpen ? (

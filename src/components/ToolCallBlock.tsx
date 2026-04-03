@@ -44,26 +44,32 @@ export default function ToolCallBlock({ name, input }: Props) {
   return <GenericCall name={name} input={input} />
 }
 
-// --- Tool-specific components ---
-
-function BashCall({ command, description }: { command: string; description: string }) {
+// --- Hook for collapse-aware open state ---
+function useCollapsibleOpen() {
   const { collapsed } = useToolCollapse()
   const [open, setOpen] = useState(false)
   const isOpen = !collapsed && open
+  return { isOpen, toggle: () => setOpen(!open) }
+}
+
+// --- Tool-specific components ---
+
+function BashCall({ command, description }: { command: string; description: string }) {
+  const { isOpen, toggle } = useCollapsibleOpen()
 
   return (
     <div className="border border-border rounded-lg bg-muted/30 overflow-hidden">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/50 transition-colors text-left"
       >
-        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
         <Terminal className="h-4 w-4 text-yellow-400" />
         <span className="text-sm font-medium">Bash</span>
         {description && <span className="text-xs text-muted-foreground ml-1 truncate">{description}</span>}
         <code className="text-xs font-mono text-muted-foreground ml-auto truncate max-w-xs">{command}</code>
       </button>
-      {open && (
+      {isOpen && (
         <div className="px-4 pb-3">
           <div className="bg-background rounded p-3 font-mono text-xs border border-border">
             <span className="text-green-400 select-none">$ </span>
@@ -76,6 +82,8 @@ function BashCall({ command, description }: { command: string; description: stri
 }
 
 function EditCall({ filePath, oldString, newString, replaceAll }: { filePath: string; oldString: string; newString: string; replaceAll: boolean }) {
+  const { collapsed } = useToolCollapse()
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-sm text-muted-foreground px-1">
@@ -84,28 +92,28 @@ function EditCall({ filePath, oldString, newString, replaceAll }: { filePath: st
         {replaceAll && <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">replace all</span>}
         <span className="font-mono truncate ml-1">{filePath}</span>
       </div>
-      <DiffView oldString={oldString} newString={newString} />
+      {!collapsed && <DiffView oldString={oldString} newString={newString} />}
     </div>
   )
 }
 
 function WriteCall({ filePath, content }: { filePath: string; content: string }) {
-  const [open, setOpen] = useState(false)
+  const { isOpen, toggle } = useCollapsibleOpen()
   const lang = guessLang(filePath)
 
   return (
     <div className="border border-border rounded-lg bg-muted/30 overflow-hidden">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/50 transition-colors text-left"
       >
-        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
         <FileText className="h-4 w-4 text-green-400" />
         <span className="text-sm font-medium">Write</span>
         <span className="text-xs font-mono text-muted-foreground truncate">{filePath}</span>
         <span className="text-xs text-muted-foreground ml-auto">{content.split('\n').length} lines</span>
       </button>
-      {open && (
+      {isOpen && (
         <div className="px-4 pb-3 max-h-96 overflow-y-auto">
           <SyntaxHighlighter style={syntaxTheme} language={lang} PreTag="div">
             {content}
@@ -170,15 +178,15 @@ function WebFetchCall({ url }: { url: string }) {
 }
 
 function GenericCall({ name, input }: { name: string; input: unknown }) {
-  const [open, setOpen] = useState(false)
+  const { isOpen, toggle } = useCollapsibleOpen()
 
   return (
     <div className="border border-border rounded-lg bg-muted/30 overflow-hidden">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-muted/50 transition-colors text-left"
       >
-        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+        {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
         <span className="text-base">{getToolIcon(name)}</span>
         <span className="text-sm font-medium">{name}</span>
         {(input as Record<string, unknown>)?.file_path !== undefined && (
@@ -187,7 +195,7 @@ function GenericCall({ name, input }: { name: string; input: unknown }) {
           </span>
         )}
       </button>
-      {open && input !== undefined && (
+      {isOpen && input !== undefined && (
         <div className="px-4 pb-3">
           <pre className="text-xs font-mono bg-background rounded p-3 overflow-x-auto max-h-96 overflow-y-auto">
             {JSON.stringify(input, null, 2)}
