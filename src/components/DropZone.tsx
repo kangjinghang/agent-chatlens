@@ -20,10 +20,6 @@ export default function DropZone({ onFile, loading }: Props) {
     e.preventDefault()
   }, [])
 
-  const handleClick = useCallback(() => {
-    document.getElementById('file-input')?.click()
-  }, [])
-
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
@@ -34,7 +30,6 @@ export default function DropZone({ onFile, loading }: Props) {
 
   const handleFilePicker = useCallback(async () => {
     if (!('showOpenFilePicker' in window)) {
-      // Fallback to regular file input
       document.getElementById('file-input')?.click()
       return
     }
@@ -51,7 +46,6 @@ export default function DropZone({ onFile, loading }: Props) {
       const file = await handle.getFile()
       onFile(file, handle)
     } catch (err) {
-      // User cancelled or error occurred
       if ((err as Error).name !== 'AbortError') {
         console.error('File picker error:', err)
       }
@@ -72,7 +66,7 @@ export default function DropZone({ onFile, loading }: Props) {
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        onClick={handleClick}
+        onClick={() => document.getElementById('file-input')?.click()}
         className="border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-primary transition-colors cursor-pointer"
       >
         <input id="file-input" type="file" accept=".jsonl" onChange={handleChange} className="hidden" />
@@ -89,13 +83,19 @@ export default function DropZone({ onFile, loading }: Props) {
         </div>
       </div>
 
-      {/* File picker button for reload support */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 border-t border-border" />
+        <span className="text-sm text-muted-foreground">or</span>
+        <div className="flex-1 border-t border-border" />
+      </div>
+
       <button
         onClick={handleFilePicker}
         className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors font-medium"
       >
         <FolderOpen className="h-5 w-5" />
-        Choose File (supports reload)
+        Open with File Picker
+        <span className="text-xs opacity-70 ml-1">(supports reload)</span>
       </button>
     </div>
   )
