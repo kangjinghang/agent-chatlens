@@ -1,8 +1,9 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { AlertCircle, ArrowUp, ArrowDown } from 'lucide-react'
 import type { ParsedSession } from '../parser'
-import MessageItem from './MessageItem'
+import { groupIntoTurns } from '../parser'
+import TurnView from './TurnView'
 
 interface Props {
   session: ParsedSession
@@ -14,19 +15,21 @@ export default function SessionList({ session }: Props) {
   const [isAtTop, setIsAtTop] = useState(true)
   const [isAtBottom, setIsAtBottom] = useState(true)
 
+  const turns = useMemo(() => groupIntoTurns(session.messages), [session.messages])
+
   const virtualizer = useVirtualizer({
-    count: session.messages.length,
+    count: turns.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 150,
-    overscan: 5,
+    estimateSize: () => 200,
+    overscan: 3,
   })
 
   // Auto-scroll to bottom on first load
   useEffect(() => {
-    if (session.messages.length > 0 && scrollRef.current) {
+    if (turns.length > 0 && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [session.messages.length])
+  }, [turns.length])
 
   // Track scroll position
   useEffect(() => {
@@ -46,7 +49,7 @@ export default function SessionList({ session }: Props) {
     updateScrollState()
     el.addEventListener('scroll', updateScrollState)
     return () => el.removeEventListener('scroll', updateScrollState)
-  }, [session.messages.length])
+  }, [turns.length])
 
   const scrollToTop = useCallback(() => {
     if (scrollRef.current) {
@@ -84,10 +87,10 @@ export default function SessionList({ session }: Props) {
           }}
         >
           {virtualizer.getVirtualItems().map((virtualItem) => {
-            const msg = session.messages[virtualItem.index]
+            const turn = turns[virtualItem.index]
             return (
               <div
-                key={msg.id}
+                key={turn.id}
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -99,7 +102,7 @@ export default function SessionList({ session }: Props) {
                 data-index={virtualItem.index}
                 ref={virtualizer.measureElement}
               >
-                <MessageItem message={msg} />
+                <TurnView turn={turn} />
               </div>
             )
           })}

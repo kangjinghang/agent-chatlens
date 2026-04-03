@@ -48,6 +48,14 @@ export interface ParsedSession {
   messages: DisplayMessage[]
 }
 
+// --- Turn grouping (UI-level) ---
+
+export interface Turn {
+  id: string
+  user: DisplayMessage | null
+  steps: DisplayMessage[]
+}
+
 // --- Raw entry types (for parsing) ---
 
 export interface RawEntry {

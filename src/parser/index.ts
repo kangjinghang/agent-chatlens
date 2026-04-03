@@ -1,8 +1,8 @@
-import type { RawEntry, ParsedSession, DisplayMessage } from './types'
+import type { RawEntry, ParsedSession, DisplayMessage, Turn } from './types'
 import { parseOpenClawEntries } from './openclaw'
 import { parseClaudeCodeEntries } from './claude-code'
 
-export type { DisplayMessage, ContentBlock, ParsedSession, Role } from './types'
+export type { DisplayMessage, ContentBlock, ParsedSession, Role, Turn } from './types'
 export { parseOpenClawEntries } from './openclaw'
 export { parseClaudeCodeEntries } from './claude-code'
 
@@ -101,4 +101,27 @@ export function parseSession(jsonlContent: string, filename: string): ParsedSess
     createdAt: firstTs,
     messages,
   }
+}
+
+/**
+ * Group flat DisplayMessage[] into Turn[] for chat-style rendering.
+ * Each turn starts with a user message, followed by assistant + toolResult steps.
+ */
+export function groupIntoTurns(messages: DisplayMessage[]): Turn[] {
+  const turns: Turn[] = []
+  let current: Turn | null = null
+
+  for (const msg of messages) {
+    if (msg.role === 'user') {
+      if (current) turns.push(current)
+      current = { id: msg.id, user: msg, steps: [] }
+    } else if (current) {
+      current.steps.push(msg)
+    } else {
+      // assistant/toolResult before any user message
+      current = { id: msg.id, user: null, steps: [msg] }
+    }
+  }
+  if (current) turns.push(current)
+  return turns
 }
