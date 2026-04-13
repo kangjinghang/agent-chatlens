@@ -34,9 +34,9 @@
 
 ## 为什么用 Agent ChatLens？
 
-使用 **Claude Code** 等 AI 编程智能体会产生丰富的对话日志，但在终端里查看这些日志体验很差。Agent ChatLens 提供了一个**优雅的聊天风格界面**，让你可以浏览、搜索和分析会话——零配置。
+使用 **Claude Code** 等 AI 编程智能体会产生丰富的对话日志，但在终端里查看这些日志体验很差。Agent ChatLens 提供了一个**优雅的聊天风格界面**，让你可以浏览、搜索、导出和分析会话——零配置。
 
-**只需拖入一个 `.jsonl` 文件，即可开始探索。**
+**只需拖入一个 `.jsonl` 或 `.json` 文件，即可开始探索。**
 
 ## ✨ 功能特性
 
@@ -52,21 +52,25 @@
 - 📈 **时间线视图** — 甘特图展示工具调用执行时间线与持续时长
 - 🔽 **折叠/展开工具** — 一键折叠所有工具调用，支持逐项展开覆盖
 
+### 搜索与导出
+- 🔍 **全文搜索 (⌘K)** — 跨所有消息、工具和思考内容搜索，结果高亮显示
+- 📥 **导出功能** — 下载会话为 Markdown 或带样式的 HTML 文件
+
 ### 性能表现
 - ⚡ **虚拟滚动** — 流畅处理大型会话（4000+ 消息），告别卡顿
 - 📊 **会话统计** — 一览回合数、工具调用数、总 Token 数、会话时长
 - 🌙 **深色/浅色主题** 切换
 
 ### 零配置
-- 📁 **拖放加载** JSONL 文件，即时查看
-- 🔍 **自动识别** OpenClaw 和 Claude Code 格式
+- 📁 **拖放加载** `.jsonl` 或 `.json` 文件，即时查看
+- 🔍 **自动识别** OpenClaw、Claude Code 和 Gemini CLI 格式
 - 💻 **纯前端** — 无后端、无需安装、无需注册，打开即用
 
 ## 🚀 快速开始
 
 ### 在线使用（最快）
 
-访问 [kangjinghang.github.io/agent-chatlens](https://kangjinghang.github.io/agent-chatlens/)，拖入一个 `.jsonl` 文件即可。
+访问 [kangjinghang.github.io/agent-chatlens](https://kangjinghang.github.io/agent-chatlens/)，拖入一个 `.jsonl` 或 `.json` 文件即可。
 
 ### 本地开发
 
@@ -77,7 +81,7 @@ bun install
 bun run dev
 ```
 
-然后打开 http://localhost:3000，拖入 `.jsonl` 文件。
+然后打开 http://localhost:3000，拖入 `.jsonl` 或 `.json` 文件。
 
 ## 📁 支持的格式
 
@@ -101,6 +105,20 @@ bun run dev
 {"type":"assistant","uuid":"a1","message":{"role":"assistant","content":[{"type":"text","text":"Hi!"}]}}
 {"type":"assistant","uuid":"a2","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"ls"}}]}}
 {"type":"user","uuid":"u2","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"file.txt"}]}}
+```
+
+### Gemini CLI 会话
+
+来自 `~/.gemini/tmp/<project>/chats/*.json` 的文件
+
+```json
+{
+  "sessionId": "session-123",
+  "messages": [
+    {"role": "user", "parts": [{"text": "Hello"}]},
+    {"role": "model", "parts": [{"text": "Hi!"}, {"functionCall": {"name": "read_file", "args": {"path": "src/main.ts"}}}]}
+  ]
+}
 ```
 
 ## 🛠️ 技术栈

@@ -1,12 +1,14 @@
 import type { RawEntry, ParsedSession, DisplayMessage, Turn } from './types'
 import { parseOpenClawEntries } from './openclaw'
 import { parseClaudeCodeEntries } from './claude-code'
+import { parseGeminiCliEntries } from './gemini-cli'
 
 export type { DisplayMessage, ContentBlock, ParsedSession, Role, Turn } from './types'
 export { parseOpenClawEntries } from './openclaw'
 export { parseClaudeCodeEntries } from './claude-code'
+export { parseGeminiCliEntries } from './gemini-cli'
 
-type SessionFormat = 'openclaw' | 'claude-code' | 'unknown'
+type SessionFormat = 'openclaw' | 'claude-code' | 'gemini-cli' | 'unknown'
 
 /**
  * Auto-detect the JSONL format from the first few entries.
@@ -51,6 +53,28 @@ export function detectFormat(entries: RawEntry[]): SessionFormat {
  * Auto-detects format and uses the appropriate parser.
  */
 export function parseSession(jsonlContent: string, filename: string): ParsedSession {
+  // Try parsing as a single JSON object first (Gemini CLI format)
+  try {
+    const jsonObj = JSON.parse(jsonlContent.trim())
+    if (jsonObj && typeof jsonObj === 'object' && !Array.isArray(jsonObj)) {
+      // Check for Gemini CLI format
+      if (isGeminiCliFormat(jsonObj)) {
+        const messages = parseGeminiCliEntries(jsonObj)
+        const sessionName = filename.replace(/\.(jsonl|json)$/i, '')
+        const title = jsonObj.title || jsonObj.sessionId || sessionName
+        return {
+          id: sessionName,
+          title,
+          format: 'gemini-cli',
+          createdAt: messages[0]?.timestamp || null,
+          messages,
+        }
+      }
+    }
+  } catch {
+    // Not a single JSON object, try JSONL
+  }
+
   const lines = jsonlContent.trim().split('\n')
   const rawEntries: RawEntry[] = []
 
@@ -101,6 +125,22 @@ export function parseSession(jsonlContent: string, filename: string): ParsedSess
     createdAt: firstTs,
     messages,
   }
+}
+
+/**
+ * Detect if a JSON object is a Gemini CLI session.
+ */
+function isGeminiCliFormat(obj: Record<string, unknown>): boolean {
+  // Must have messages array
+  if (!Array.isArray(obj.messages)) return false
+  // Check for Gemini-specific fields
+  if ('sessionId' in obj) return true
+  // Check message structure for functionCall/functionResponse
+  const firstMsg = obj.messages[0] as Record<string, unknown> | undefined
+  if (firstMsg && typeof firstMsg === 'object' && Array.isArray(firstMsg.parts)) {
+    return true
+  }
+  return false
 }
 
 /**

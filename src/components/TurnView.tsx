@@ -8,6 +8,7 @@ import type { Turn, ContentBlock, DisplayMessage } from '../parser'
 import ThinkingBlock from './ThinkingBlock'
 import ToolCallBlock from './ToolCallBlock'
 import ToolResultBlock from './ToolResultBlock'
+import { HighlightedText } from '../utils/highlight'
 
 const syntaxTheme = {
   ...vscDarkPlus,
@@ -46,6 +47,13 @@ export function ToolCollapseProvider({ children }: { children: React.ReactNode }
   )
 }
 
+// --- Highlight Context ---
+const HighlightContext = createContext<string>('')
+
+export function useHighlightText() {
+  return useContext(HighlightContext)
+}
+
 // --- Time helpers ---
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -60,17 +68,20 @@ function formatDuration(ms: number): string {
 }
 
 // --- TurnView ---
-export default function TurnView({ turn }: { turn: Turn }) {
+export default function TurnView({ turn, highlightText }: { turn: Turn; highlightText?: string }) {
   return (
-    <div className="space-y-3">
-      {turn.user && <UserBubble message={turn.user} />}
-      {turn.steps.length > 0 && <AssistantBubble steps={turn.steps} />}
-    </div>
+    <HighlightContext.Provider value={highlightText || ''}>
+      <div className="space-y-3">
+        {turn.user && <UserBubble message={turn.user} />}
+        {turn.steps.length > 0 && <AssistantBubble steps={turn.steps} />}
+      </div>
+    </HighlightContext.Provider>
   )
 }
 
 // --- User Bubble ---
 function UserBubble({ message }: { message: DisplayMessage }) {
+  const highlightQuery = useHighlightText()
   const text = message.content
     .filter(b => b.type === 'text')
     .map(b => (b as { text: string }).text)
@@ -91,7 +102,7 @@ function UserBubble({ message }: { message: DisplayMessage }) {
           )}
         </div>
         <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-          {text}
+          {highlightQuery ? <HighlightedText text={text} query={highlightQuery} /> : text}
         </div>
       </div>
     </div>
@@ -212,35 +223,41 @@ function StepView({ step, prevTimestamp }: { step: DisplayMessage; prevTimestamp
 
 // --- Content Block Renderer ---
 function ContentBlockRenderer({ block }: { block: ContentBlock }) {
+  const highlightQuery = useHighlightText()
+
   switch (block.type) {
     case 'text':
       return (
         <div className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              code({ className, children, ...props }) {
-                const { ref, ...restProps } = props as { ref?: any; [key: string]: any }
-                const match = /language-(\w+)/.exec(className || '')
-                const codeStr = String(children).replace(/\n$/, '')
+          {highlightQuery ? (
+            <HighlightedText text={block.text} query={highlightQuery} />
+          ) : (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                code({ className, children, ...props }) {
+                  const { ref, ...restProps } = props as { ref?: any; [key: string]: any }
+                  const match = /language-(\w+)/.exec(className || '')
+                  const codeStr = String(children).replace(/\n$/, '')
 
-                if (!match) {
-                  return <code className={className} {...restProps}>{children}</code>
-                }
+                  if (!match) {
+                    return <code className={className} {...restProps}>{children}</code>
+                  }
 
-                return (
-                  <div className="relative group">
-                    <CopyButton text={codeStr} />
-                    <SyntaxHighlighter style={syntaxTheme as any} language={match[1]} PreTag="div" {...restProps}>
-                      {codeStr}
-                    </SyntaxHighlighter>
-                  </div>
-                )
-              },
-            }}
-          >
-            {block.text}
-          </ReactMarkdown>
+                  return (
+                    <div className="relative group">
+                      <CopyButton text={codeStr} />
+                      <SyntaxHighlighter style={syntaxTheme as any} language={match[1]} PreTag="div" {...restProps}>
+                        {codeStr}
+                      </SyntaxHighlighter>
+                    </div>
+                  )
+                },
+              }}
+            >
+              {block.text}
+            </ReactMarkdown>
+          )}
         </div>
       )
 

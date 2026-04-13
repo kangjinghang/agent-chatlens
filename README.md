@@ -2,8 +2,8 @@
 
 <p align="center">
   <strong>A beautiful web viewer for AI agent session files</strong><br>
-  Inspect, analyze, and debug your Claude Code &amp; OpenClaw conversation sessions with ease.<br>
-  Drop a <code>.jsonl</code> session file and explore — zero setup required.
+  Inspect, analyze, and debug your Claude Code, OpenClaw &amp; Gemini CLI conversation sessions with ease.<br>
+  Drop a <code>.jsonl</code> or <code>.json</code> session file and explore — zero setup required.
 </p>
 
 <p align="center">
@@ -34,9 +34,9 @@
 
 ## Why Agent ChatLens?
 
-Working with AI coding agents like **Claude Code** produces rich conversation logs, but reviewing them in the terminal is painful. Agent ChatLens gives you a **beautiful chat-style interface** to browse, search, and analyze your sessions — with zero setup.
+Working with AI coding agents like **Claude Code** produces rich conversation logs, but reviewing them in the terminal is painful. Agent ChatLens gives you a **beautiful chat-style interface** to browse, search, export, and analyze your sessions — with zero setup.
 
-**Just drag & drop a `.jsonl` file and start exploring.**
+**Just drag & drop a `.jsonl` or `.json` file and start exploring.**
 
 ## ✨ Features
 
@@ -52,14 +52,18 @@ Working with AI coding agents like **Claude Code** produces rich conversation lo
 - 📈 **Timeline view** — Gantt chart showing tool call execution timeline with duration bars
 - 🔽 **Collapse/expand tools** — Toggle all tool calls collapsed, with per-item override
 
+### Search & Export
+- 🔍 **Full-text search (⌘K)** — Search across all messages, tools, and thinking blocks with highlighted results
+- 📥 **Export** — Download sessions as Markdown or styled HTML files
+
 ### Performance
 - ⚡ **Virtual scrolling** — Handles large sessions (4000+ messages) without lag
 - 📊 **Session statistics** — Turns, tool calls, total tokens, session duration at a glance
 - 🌙 **Dark / light theme** toggle
 
 ### Zero Config
-- 📁 **Drag & drop** JSONL files for instant viewing
-- 🔍 **Auto-detects** OpenClaw and Claude Code formats
+- 📁 **Drag & drop** `.jsonl` or `.json` files for instant viewing
+- 🔍 **Auto-detects** OpenClaw, Claude Code, and Gemini CLI formats
 - 💻 **Pure frontend** — No backend, no install, no signup. Just open and use.
 
 ## 🚀 Quick Start
@@ -101,6 +105,20 @@ Files from `~/.claude/projects/*/*.jsonl`
 {"type":"assistant","uuid":"a1","message":{"role":"assistant","content":[{"type":"text","text":"Hi!"}]}}
 {"type":"assistant","uuid":"a2","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"ls"}}]}}
 {"type":"user","uuid":"u2","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"file.txt"}]}}
+```
+
+### Gemini CLI Sessions
+
+Files from `~/.gemini/tmp/<project>/chats/*.json`
+
+```json
+{
+  "sessionId": "session-123",
+  "messages": [
+    {"role": "user", "parts": [{"text": "Hello"}]},
+    {"role": "model", "parts": [{"text": "Hi!"}, {"functionCall": {"name": "read_file", "args": {"path": "src/main.ts"}}}]}
+  ]
+}
 ```
 
 ## 🛠️ Tech Stack

@@ -48,16 +48,19 @@ export default function DropZone({ onFile, loading }: Props) {
       onClick={handleClick}
       className="border-2 border-dashed border-border rounded-xl p-12 text-center hover:border-primary transition-colors cursor-pointer"
     >
-      <input id="file-input" type="file" accept=".jsonl" onChange={handleChange} className="hidden" />
+      <input id="file-input" type="file" accept=".jsonl,.json" onChange={handleChange} className="hidden" />
       <Upload className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-      <h2 className="text-xl font-semibold mb-2">Drop JSONL file here</h2>
-      <p className="text-muted-foreground mb-4">or click to select</p>
+      <h2 className="text-xl font-semibold mb-2">Drop session file here</h2>
+      <p className="text-muted-foreground mb-4">or click to select · supports .jsonl and .json</p>
       <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <FileText className="h-4 w-4" /> OpenClaw
         </span>
         <span className="flex items-center gap-1">
           <FileText className="h-4 w-4" /> Claude Code
+        </span>
+        <span className="flex items-center gap-1">
+          <FileText className="h-4 w-4" /> Gemini CLI
         </span>
       </div>
     </div>

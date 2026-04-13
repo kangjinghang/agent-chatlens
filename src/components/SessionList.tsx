@@ -1,10 +1,12 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { AlertCircle, ArrowUp, ArrowDown, Layers, BarChart3, List, GanttChart } from 'lucide-react'
+import { AlertCircle, ArrowUp, ArrowDown, Layers, BarChart3, List, GanttChart, Download, Search, FileText, Code } from 'lucide-react'
 import type { ParsedSession } from '../parser'
 import { groupIntoTurns } from '../parser'
 import TurnView, { ToolCollapseProvider, useToolCollapse } from './TurnView'
 import TimelineView from './TimelineView'
+import { exportToMarkdown, exportToHtml, downloadFile } from '../utils/export'
+import SearchDialog from './SearchDialog'
 
 interface Props {
   session: ParsedSession
@@ -24,6 +26,9 @@ function SessionListInner({ session }: Props) {
   const [isAtTop, setIsAtTop] = useState(true)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [view, setView] = useState<'list' | 'timeline'>('list')
+  const [exportOpen, setExportOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [highlightText, setHighlightText] = useState('')
   const { collapsed, toggle } = useToolCollapse()
 
   const turns = useMemo(() => groupIntoTurns(session.messages), [session.messages])
@@ -86,6 +91,26 @@ function SessionListInner({ session }: Props) {
     return { toolCalls, totalInput, totalOutput, duration }
   }, [session.messages])
 
+  // ⌘K / Ctrl+K to open search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  const scrollToTurn = useCallback((turnIndex: number) => {
+    if (view === 'timeline') setView('list')
+    // Need a small delay for the list to render after view switch
+    setTimeout(() => {
+      virtualizer.scrollToIndex(turnIndex, { align: 'center' })
+    }, view === 'timeline' ? 50 : 0)
+  }, [virtualizer, view])
+
   if (session.messages.length === 0) {
     return (
       <div className="text-center py-12">
@@ -119,6 +144,15 @@ function SessionListInner({ session }: Props) {
 
         {/* Collapse toggle */}
         <div className="flex items-center gap-2">
+          {/* Search button */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg hover:bg-muted border border-border transition-colors"
+            title="Search (⌘K)"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Search</span>
+          </button>
           {/* View toggle */}
           <div className="flex items-center border border-border rounded-lg overflow-hidden">
             <button
@@ -153,6 +187,47 @@ function SessionListInner({ session }: Props) {
               {collapsed ? 'Expand Tools' : 'Collapse Tools'}
             </button>
           )}
+
+          {/* Export dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setExportOpen(!exportOpen)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg hover:bg-muted border border-border transition-colors"
+              title="Export session"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </button>
+            {exportOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 bg-background border border-border rounded-lg shadow-lg py-1 min-w-[160px]">
+                  <button
+                    onClick={() => {
+                      const md = exportToMarkdown(turns, session)
+                      downloadFile(md, `${session.title}.md`, 'text/markdown')
+                      setExportOpen(false)
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    Export Markdown
+                  </button>
+                  <button
+                    onClick={() => {
+                      const html = exportToHtml(turns, session)
+                      downloadFile(html, `${session.title}.html`, 'text/html')
+                      setExportOpen(false)
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-muted transition-colors text-left"
+                  >
+                    <Code className="h-3.5 w-3.5" />
+                    Export HTML
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -188,7 +263,7 @@ function SessionListInner({ session }: Props) {
                   data-index={virtualItem.index}
                   ref={virtualizer.measureElement}
                 >
-                  <TurnView turn={turn} />
+                  <TurnView turn={turn} highlightText={highlightText} />
                 </div>
               )
             })}
@@ -218,6 +293,18 @@ function SessionListInner({ session }: Props) {
             </button>
           )}
         </div>
+      )}
+
+      {/* Search dialog */}
+      {searchOpen && (
+        <SearchDialog
+          turns={turns}
+          onSelect={(turnIndex) => {
+            scrollToTurn(turnIndex)
+            setHighlightText('') // brief flash then clear — user found what they need
+          }}
+          onClose={() => setSearchOpen(false)}
+        />
       )}
     </div>
   )

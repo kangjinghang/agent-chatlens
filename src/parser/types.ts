@@ -43,7 +43,7 @@ export interface DisplayMessage {
 export interface ParsedSession {
   id: string
   title: string
-  format: 'openclaw' | 'claude-code' | 'unknown'
+  format: 'openclaw' | 'claude-code' | 'gemini-cli' | 'unknown'
   createdAt: number | null
   messages: DisplayMessage[]
 }
