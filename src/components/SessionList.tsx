@@ -1,10 +1,14 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { AlertCircle, ArrowUp, ArrowDown, Layers, BarChart3, List, GanttChart, Download, Search, FileText, Code } from 'lucide-react'
+import { AlertCircle, ArrowUp, ArrowDown, Layers, BarChart3, List, GanttChart, Download, Search, FileText, Code, ListOrdered } from 'lucide-react'
 import type { ParsedSession } from '../parser'
 import { groupIntoTurns } from '../parser'
+import type { ToolResultBlock } from '../parser/types'
 import TurnView, { ToolCollapseProvider, useToolCollapse } from './TurnView'
 import TimelineView from './TimelineView'
+import AnalyticsView from './AnalyticsView'
+import TOCPanel from './TOCPanel'
+import type { TOCEntry } from './TOCPanel'
 import { exportToMarkdown, exportToHtml, downloadFile } from '../utils/export'
 import SearchDialog from './SearchDialog'
 
@@ -25,10 +29,12 @@ function SessionListInner({ session }: Props) {
   const [showScrollButtons, setShowScrollButtons] = useState(false)
   const [isAtTop, setIsAtTop] = useState(true)
   const [isAtBottom, setIsAtBottom] = useState(true)
-  const [view, setView] = useState<'list' | 'timeline'>('list')
+  const [view, setView] = useState<'list' | 'timeline' | 'analytics'>('list')
   const [exportOpen, setExportOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [highlightText, setHighlightText] = useState('')
+  const [tocOpen, setTocOpen] = useState(false)
+  const [activeTurnIndex, setActiveTurnIndex] = useState(0)
   const { collapsed, toggle } = useToolCollapse()
 
   const turns = useMemo(() => groupIntoTurns(session.messages), [session.messages])
@@ -47,7 +53,7 @@ function SessionListInner({ session }: Props) {
     }
   }, [turns.length])
 
-  // Track scroll position
+  // Track scroll position + active turn index
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -60,12 +66,21 @@ function SessionListInner({ session }: Props) {
       setIsAtTop(scrollTop < 50)
       setIsAtBottom(scrollTop + clientHeight >= scrollHeight - 50)
       setShowScrollButtons(scrollHeight > clientHeight * 1.5)
+
+      // Track active turn from virtualizer visible items
+      if (view === 'list') {
+        const virtualItems = virtualizer.getVirtualItems()
+        if (virtualItems.length > 0) {
+          const midItem = virtualItems[Math.floor(virtualItems.length / 2)]
+          setActiveTurnIndex(midItem.index)
+        }
+      }
     }
 
     updateScrollState()
     el.addEventListener('scroll', updateScrollState)
     return () => el.removeEventListener('scroll', updateScrollState)
-  }, [turns.length, view])
+  }, [turns.length, view, virtualizer])
 
   const scrollToTop = useCallback(() => {
     if (scrollRef.current) {
@@ -90,6 +105,23 @@ function SessionListInner({ session }: Props) {
     const duration = firstTs && lastTs ? lastTs - firstTs : null
     return { toolCalls, totalInput, totalOutput, duration }
   }, [session.messages])
+
+  // Compute TOC entries
+  const tocEntries = useMemo((): TOCEntry[] => {
+    return turns.map((turn, i) => {
+      const userText = turn.user
+        ? turn.user.content
+            .filter(b => b.type === 'text')
+            .map(b => (b as { text: string }).text)
+            .join(' ')
+            .slice(0, 60)
+        : '(no user message)'
+      const toolCount = turn.steps.reduce(
+        (count, step) => count + step.content.filter(b => b.type === 'toolUse').length, 0,
+      )
+      return { turnIndex: i, preview: userText || '(no text)', toolCount }
+    })
+  }, [turns])
 
   // ⌘K / Ctrl+K to open search
   useEffect(() => {
@@ -123,19 +155,19 @@ function SessionListInner({ session }: Props) {
   return (
     <div className="relative">
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-3 px-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 px-1 gap-2">
         <div className="flex items-center gap-3">
           {/* Stats pills */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             <BarChart3 className="h-3.5 w-3.5" />
             <span>{turns.length} turns</span>
-            <span>·</span>
+            <span className="hidden sm:inline">·</span>
             <span>{stats.toolCalls} tool calls</span>
-            <span>·</span>
+            <span className="hidden sm:inline">·</span>
             <span>{formatTokens(stats.totalInput + stats.totalOutput)} tokens</span>
             {stats.duration !== null && (
               <>
-                <span>·</span>
+                <span className="hidden sm:inline">·</span>
                 <span>{formatDuration(stats.duration)}</span>
               </>
             )}
@@ -143,7 +175,20 @@ function SessionListInner({ session }: Props) {
         </div>
 
         {/* Collapse toggle */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          {/* TOC button (list view only) */}
+          {view === 'list' && (
+            <button
+              onClick={() => setTocOpen(prev => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg hover:bg-muted border transition-colors ${
+                tocOpen ? 'bg-muted border-foreground/20' : 'border-border'
+              }`}
+              title="Table of Contents"
+            >
+              <ListOrdered className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">TOC</span>
+            </button>
+          )}
           {/* Search button */}
           <button
             onClick={() => setSearchOpen(true)}
@@ -163,7 +208,7 @@ function SessionListInner({ session }: Props) {
               title="List view"
             >
               <List className="h-3.5 w-3.5" />
-              List
+              <span className="hidden sm:inline">List</span>
             </button>
             <button
               onClick={() => setView('timeline')}
@@ -173,7 +218,17 @@ function SessionListInner({ session }: Props) {
               title="Timeline view"
             >
               <GanttChart className="h-3.5 w-3.5" />
-              Timeline
+              <span className="hidden sm:inline">Timeline</span>
+            </button>
+            <button
+              onClick={() => setView('analytics')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${
+                view === 'analytics' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'
+              }`}
+              title="Analytics view"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Analytics</span>
             </button>
           </div>
 
@@ -184,7 +239,7 @@ function SessionListInner({ session }: Props) {
               title={collapsed ? 'Expand all tool calls' : 'Collapse all tool calls'}
             >
               <Layers className="h-3.5 w-3.5" />
-              {collapsed ? 'Expand Tools' : 'Collapse Tools'}
+              <span className="hidden sm:inline">{collapsed ? 'Expand Tools' : 'Collapse Tools'}</span>
             </button>
           )}
 
@@ -196,7 +251,7 @@ function SessionListInner({ session }: Props) {
               title="Export session"
             >
               <Download className="h-3.5 w-3.5" />
-              Export
+              <span className="hidden sm:inline">Export</span>
             </button>
             {exportOpen && (
               <>
@@ -232,13 +287,31 @@ function SessionListInner({ session }: Props) {
       </div>
 
       {/* Messages */}
-      <div
-        ref={scrollRef}
-        className="overflow-y-auto"
-        style={{ maxHeight: 'calc(100vh - 240px)' }}
-      >
+      <div className="flex">
+        {/* TOC Panel */}
+        {tocOpen && view === 'list' && (
+          <TOCPanel
+            entries={tocEntries}
+            activeIndex={activeTurnIndex}
+            onSelect={(index) => {
+              scrollToTurn(index)
+              // Close on mobile after selection
+              if (window.innerWidth < 768) setTocOpen(false)
+            }}
+            isOpen={tocOpen && view === 'list'}
+            onClose={() => setTocOpen(false)}
+          />
+        )}
+
+        <div
+          ref={scrollRef}
+          className="overflow-y-auto flex-1"
+          style={{ maxHeight: 'calc(100vh - 180px)' }}
+        >
         {view === 'timeline' ? (
-          <TimelineView turns={turns} />
+          <TimelineView turns={turns} messages={session.messages} />
+        ) : view === 'analytics' ? (
+          <AnalyticsView turns={turns} messages={session.messages} />
         ) : (
           <div
             style={{
@@ -269,6 +342,7 @@ function SessionListInner({ session }: Props) {
             })}
           </div>
         )}
+      </div>
       </div>
 
       {/* Scroll buttons */}

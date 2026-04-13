@@ -40,10 +40,13 @@ The core of the app. Three format-specific parsers produce a unified `DisplayMes
 ### Component layer (`src/components/`)
 
 - **`DropZone.tsx`** — File drag-and-drop / file picker interface
-- **`SessionList.tsx`** — Top-level session viewer with virtual scrolling, view toggle (list/timeline), search (⌘K), export, stats bar, and scroll navigation
-- **`TurnView.tsx`** — Chat-style turn rendering: user bubbles (right-aligned) and assistant bubbles (full-width with header/footer). Exports `ToolCollapseProvider`, `useToolCollapse`, `HighlightContext`, `useHighlightText` for global collapse/search highlight state.
-- **`TimelineView.tsx`** — Gantt chart view showing tool call execution timeline with duration bars, grouped by turn
-- **`SearchDialog.tsx`** — Full-text search modal (⌘K), searches all messages/tools/thinking, keyboard navigation, click-to-scroll
+- **`SessionList.tsx`** — Top-level session viewer with virtual scrolling, view toggle (list/timeline/analytics), search (⌘K), export, TOC navigation, stats bar, and scroll navigation. Responsive layout with mobile-friendly toolbar.
+- **`TurnView.tsx`** — Chat-style turn rendering: user bubbles (right-aligned) and assistant bubbles (full-width with header/footer). Exports `ToolCollapseProvider`, `useToolCollapse`, `HighlightContext`, `useHighlightText` for global collapse/search highlight state. Responsive padding for mobile.
+- **`TimelineView.tsx`** — Gantt chart view showing tool call execution timeline with duration bars, grouped by turn. Includes TimelineStats summary panel with tool breakdown and cache hit rate.
+- **`TimelineStats.tsx`** — Summary statistics panel for timeline view: tool call counts, execution times, per-tool-type breakdown, cache hit rate
+- **`AnalyticsView.tsx`** — Token & cost analysis panel: per-turn token usage bar chart, session summary, cost estimation with model pricing presets, cache efficiency
+- **`TOCPanel.tsx`** — Table of contents sidebar (desktop) / slide-over drawer (mobile), lists all turns with preview text and tool count, scroll-tracking active highlight
+- **`SearchDialog.tsx`** — Full-text search modal (⌘K), searches all messages/tools/thinking, keyboard navigation, click-to-scroll. Full-screen on mobile.
 - **`ToolCallBlock.tsx`** — Tool-specific rendering for Bash, Edit, Write, Read, Grep, Glob, etc. with collapsible sections and global collapse override.
 - **`ToolResultBlock.tsx`** — Tool result display with auto-collapse, code detection, and file path rendering
 - **`DiffView.tsx`** — Inline diff view for Edit tool calls (red deletion / green addition)
@@ -54,6 +57,7 @@ The core of the app. Three format-specific parsers produce a unified `DisplayMes
 
 - **`export.ts`** — Session export: `exportToMarkdown()`, `exportToHtml()`, `downloadFile()`
 - **`highlight.tsx`** — `HighlightedText` component and `getSnippet()` for search result preview
+- **`analytics.ts`** — Token analytics computation: `computeTurnTokenUsage()`, `computeSessionSummary()`, `estimateCost()`, Claude pricing presets
 
 ### Styling
 

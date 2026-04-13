@@ -1,22 +1,17 @@
 import { useState, useMemo } from 'react'
 import { Clock, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import type { Turn } from '../parser'
+import type { DisplayMessage } from '../parser/types'
 import type { ToolUseBlock, ToolResultBlock } from '../parser/types'
+import TimelineStats from './TimelineStats'
+import type { ToolEvent as ToolEventType } from './TimelineStats'
 
-// --- Data types ---
+// Re-export ToolEvent for external use
+export type { ToolEvent as ToolEvent } from './TimelineStats'
 
-interface ToolEvent {
-  toolUseId: string
-  name: string
-  input: unknown
-  startTime: number
-  endTime: number | null
-  duration: number | null
-  isError: boolean
-  resultPreview: string
-  turnIndex: number
-  userSummary: string
-}
+// --- Data types (ToolEvent imported from TimelineStats) ---
+
+type ToolEvent = ToolEventType
 
 // --- Extract tool events from turns ---
 
@@ -122,11 +117,27 @@ function formatTime(ts: number): string {
 
 interface Props {
   turns: Turn[]
+  messages: DisplayMessage[]
 }
 
-export default function TimelineView({ turns }: Props) {
+export default function TimelineView({ turns, messages }: Props) {
   const events = useMemo(() => extractToolEvents(turns), [turns])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  // Compute cache stats from messages
+  const cacheStats = useMemo(() => {
+    let totalCacheRead = 0
+    let totalCacheWrite = 0
+    let totalInput = 0
+    for (const m of messages) {
+      if (m.usage) {
+        totalCacheRead += m.usage.cacheRead ?? 0
+        totalCacheWrite += m.usage.cacheWrite ?? 0
+        totalInput += m.usage.input
+      }
+    }
+    return { totalCacheRead, totalCacheWrite, totalInput }
+  }, [messages])
 
   if (events.length === 0) {
     return (
@@ -160,7 +171,7 @@ export default function TimelineView({ turns }: Props) {
   }, [turnGroups])
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card">
+    <div className="border border-border rounded-lg overflow-hidden bg-card overflow-x-auto">
       {/* Header with time axis */}
       <div className="px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-4">
         <Clock className="h-4 w-4 text-muted-foreground" />
@@ -170,7 +181,7 @@ export default function TimelineView({ turns }: Props) {
         </span>
 
         {/* Color legend */}
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="hidden sm:flex items-center gap-3 ml-auto">
           {(['Bash', 'Edit', 'Write', 'Read', 'Grep', 'Glob'] as const).map(name => {
             const color = getToolColor(name)
             return (
@@ -183,9 +194,17 @@ export default function TimelineView({ turns }: Props) {
         </div>
       </div>
 
+      {/* Timeline Stats */}
+      <TimelineStats
+        events={events}
+        totalCacheRead={cacheStats.totalCacheRead}
+        totalCacheWrite={cacheStats.totalCacheWrite}
+        totalInput={cacheStats.totalInput}
+      />
+
       {/* Time axis ruler */}
       {totalTimeRange > 0 && (
-        <div className="px-48 py-1 border-b border-border bg-muted/30">
+        <div className="px-4 sm:px-48 py-1 border-b border-border bg-muted/30">
           <div className="relative h-4">
             {[0, 0.25, 0.5, 0.75, 1].map(frac => {
               const time = minTime + totalTimeRange * frac
@@ -234,7 +253,7 @@ export default function TimelineView({ turns }: Props) {
                       onClick={() => setExpandedId(isExpanded ? null : event.toolUseId)}
                     >
                       {/* Tool info */}
-                      <div className="w-40 shrink-0 flex items-center gap-2 min-w-0">
+                      <div className="w-24 sm:w-40 shrink-0 flex items-center gap-2 min-w-0">
                         {isExpanded ? (
                           <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
                         ) : (
@@ -247,7 +266,7 @@ export default function TimelineView({ turns }: Props) {
                       </div>
 
                       {/* Input summary */}
-                      <div className="w-32 shrink-0 min-w-0">
+                      <div className="w-20 sm:w-32 shrink-0 min-w-0">
                         <span className="text-[11px] font-mono text-muted-foreground truncate block">
                           {summary}
                         </span>

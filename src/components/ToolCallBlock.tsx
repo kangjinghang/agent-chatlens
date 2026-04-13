@@ -81,7 +81,7 @@ function BashCall({ command, description }: { command: string; description: stri
         <Terminal className="h-4 w-4 text-yellow-400" />
         <span className="text-sm font-medium">Bash</span>
         {description && <span className="text-xs text-muted-foreground ml-1 truncate">{description}</span>}
-        <code className="text-xs font-mono text-muted-foreground ml-auto truncate max-w-xs">{command}</code>
+        <code className="text-xs font-mono text-muted-foreground ml-auto truncate max-w-[120px] sm:max-w-xs">{command}</code>
       </button>
       {isOpen && (
         <div className="px-4 pb-3">
@@ -204,7 +204,7 @@ function GenericCall({ name, input }: { name: string; input: unknown }) {
         <span className="text-base">{getToolIcon(name)}</span>
         <span className="text-sm font-medium">{name}</span>
         {(input as Record<string, unknown>)?.file_path !== undefined && (
-          <span className="text-sm text-muted-foreground ml-2 font-mono truncate max-w-xs">
+          <span className="text-sm text-muted-foreground ml-2 font-mono truncate max-w-[120px] sm:max-w-xs">
             {String((input as Record<string, unknown>).file_path)}
           </span>
         )}

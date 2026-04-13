@@ -121,9 +121,9 @@ export default function SearchDialog({ turns, onSelect, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center sm:pt-[15vh]">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-xl bg-background border border-border rounded-xl shadow-2xl overflow-hidden">
+      <div className="relative z-10 w-full h-full sm:h-auto sm:max-w-xl bg-background border border-border sm:rounded-xl rounded-none shadow-2xl overflow-hidden flex flex-col">
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -147,7 +147,7 @@ export default function SearchDialog({ turns, onSelect, onClose }: Props) {
 
         {/* Results */}
         {results.length > 0 && (
-          <div ref={listRef} className="max-h-[50vh] overflow-y-auto">
+          <div ref={listRef} className="flex-1 sm:max-h-[50vh] overflow-y-auto">
             {results.map((result, i) => (
               <button
                 key={result.turnId}

@@ -91,7 +91,7 @@ function UserBubble({ message }: { message: DisplayMessage }) {
 
   return (
     <div className="flex justify-end">
-      <div className="max-w-[65%] bg-primary/10 border border-primary/20 rounded-2xl rounded-br-sm px-5 py-3">
+      <div className="max-w-[85%] sm:max-w-[65%] bg-primary/10 border border-primary/20 rounded-2xl rounded-br-sm px-3 py-2 sm:px-5 sm:py-3">
         <div className="flex items-center gap-2 mb-1">
           <User className="h-4 w-4 text-blue-400" />
           <span className="text-xs font-medium text-blue-400">User</span>
@@ -124,7 +124,7 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
     <div className="w-full">
       <div className="border border-border rounded-2xl rounded-bl-sm overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-2 px-5 py-2.5 bg-muted/50 border-b border-border">
+        <div className="flex items-center gap-2 px-3 py-2 sm:px-5 sm:py-2.5 bg-muted/50 border-b border-border">
           <Bot className="h-4 w-4 text-green-400" />
           <span className="text-xs font-medium text-green-400">Assistant</span>
           {model && <span className="text-xs text-muted-foreground font-mono">{model}</span>}
@@ -148,7 +148,7 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
         </div>
 
         {/* Steps */}
-        <div className="px-5 py-4 space-y-3">
+        <div className="px-3 py-3 sm:px-5 sm:py-4 space-y-3">
           {steps.map((step, i) => {
             const prevTs = i > 0 ? steps[i - 1].timestamp : null
             return <StepView key={step.id + i} step={step} prevTimestamp={prevTs} />
@@ -157,7 +157,7 @@ function AssistantBubble({ steps }: { steps: DisplayMessage[] }) {
 
         {/* Usage */}
         {lastUsage && (
-          <div className="px-5 py-2.5 text-xs text-muted-foreground border-t border-border bg-muted/30">
+          <div className="px-3 py-2 sm:px-5 sm:py-2.5 text-xs text-muted-foreground border-t border-border bg-muted/30">
             Tokens: {lastUsage.input} in, {lastUsage.output} out
             {lastUsage.cacheRead !== undefined && lastUsage.cacheRead > 0 && (
               <span className="ml-2">Cache: {lastUsage.cacheRead} read</span>
