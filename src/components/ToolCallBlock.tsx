@@ -32,10 +32,16 @@ export default function ToolCallBlock({ name, input }: Props) {
   const lower = name.toLowerCase()
   const inp = input as Record<string, unknown> | undefined
 
-  if (lower === 'bash') return <BashCall command={(inp?.command as string) || ''} description={(inp?.description as string) || ''} />
-  if (lower === 'edit') return <EditCall filePath={(inp?.file_path as string) || ''} oldString={(inp?.old_string as string) || ''} newString={(inp?.new_string as string) || ''} replaceAll={!!inp?.replace_all} />
-  if (lower === 'write' || lower === 'create') return <WriteCall filePath={(inp?.file_path as string) || ''} content={(inp?.content as string) || ''} />
-  if (lower === 'read') return <ReadCall filePath={(inp?.file_path as string) || ''} />
+  // Normalize field names: OpenClaw uses "path", "oldText", "newText", "exec"
+  // while Claude Code uses "file_path", "old_string", "new_string", "bash"
+  const filePath = (inp?.file_path as string) || (inp?.path as string) || ''
+  const oldString = (inp?.old_string as string) || (inp?.oldText as string) || ''
+  const newString = (inp?.new_string as string) || (inp?.newText as string) || ''
+
+  if (lower === 'bash' || lower === 'exec') return <BashCall command={(inp?.command as string) || ''} description={(inp?.description as string) || ''} />
+  if (lower === 'edit') return <EditCall filePath={filePath} oldString={oldString} newString={newString} replaceAll={!!(inp?.replace_all || inp?.replaceAll)} />
+  if (lower === 'write' || lower === 'create') return <WriteCall filePath={filePath} content={(inp?.content as string) || ''} />
+  if (lower === 'read') return <ReadCall filePath={filePath} />
   if (lower === 'grep') return <GrepCall pattern={(inp?.pattern as string) || ''} path={(inp?.path as string) || ''} include={(inp?.include as string) || ''} />
   if (lower === 'glob') return <GlobCall pattern={(inp?.pattern as string) || ''} path={(inp?.path as string) || ''} />
   if (lower === 'websearch') return <WebSearchCall query={(inp?.query as string) || ''} />
